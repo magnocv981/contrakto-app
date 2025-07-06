@@ -1,55 +1,20 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Formulario from './pages/Formulario';
 import VisualizarContrato from './pages/VisualizarContrato';
-import Contatos from './pages/Contatos';
-import Layout from './components/Layout';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          }
-        />
-        <Route
-          path="/contrato/novo"
-          element={
-            <Layout>
-              <Formulario />
-            </Layout>
-          }
-        />
-        <Route
-          path="/contrato/:id"
-          element={
-            <Layout>
-              <Formulario />
-            </Layout>
-          }
-        />
-        <Route
-          path="/visualizar/:id"
-          element={
-            <Layout>
-              <VisualizarContrato />
-            </Layout>
-          }
-        />
-        <Route
-          path="/contatos"
-          element={
-            <Layout>
-              <Contatos />
-            </Layout>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/contrato/novo" element={<Formulario />} />
+          <Route path="/contrato/:id" element={<Formulario />} />
+          <Route path="/visualizar/:id" element={<VisualizarContrato />} />
+          <Route path="/relatorio" element={<div className="text-white">Relatórios em construção</div>} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
