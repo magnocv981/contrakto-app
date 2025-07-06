@@ -1,0 +1,45 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Vite
+dist/
+.vite/
+
+# Logs
+logs/
+*.log
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Supabase
+.supabase/
+
+# Env e configs
+.env
+.env.local
+.env.*.local
+
+# Arquivos gerados
+*.orig
+*.zip
+*.tar.gz
+coverage/
+
+# Lockfiles (manter só o que você usa)
+yarn.lock
+pnpm-lock.yaml
