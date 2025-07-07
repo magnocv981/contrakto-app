@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { supabase } from '../supabaseClient'
 
 const estadosBR = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
   'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
   'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-];
+]
 
-export default function Formulario() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+export default function Formulario({ id, onSalvou }) {
+  const navigate = useNavigate()
 
   const [form, setForm] = useState({
     cliente: '',
@@ -26,87 +25,91 @@ export default function Formulario() {
     inicio: '',
     encerramento: '',
     arquivoPdf: null,
-  });
+  })
 
-  const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState(null)
 
   useEffect(() => {
-    if (id) carregarContrato();
-  }, [id]);
+    if (id) carregarContrato()
+  }, [id])
 
   async function carregarContrato() {
-    const { data, error } = await supabase.from('contratos').select('*').eq('id', id).single();
+    const { data, error } = await supabase.from('contratos').select('*').eq('id', id).single()
     if (!error && data) {
-      setForm({ ...data, arquivoPdf: null });
+      setForm({
+        ...data,
+        valor_global: data.valor_global || '',
+        quantidadeElevador: data.quantidadeElevador || 0,
+        quantidadePlataforma: data.quantidadePlataforma || 0,
+        arquivoPdf: null,
+      })
 
-      // Verifica se o PDF existe
-      const { data: lista, error: errList } = await supabase.storage
+      const { data: pdf } = supabase.storage
         .from('documentos')
-        .list(`contratos`);
-
-      if (!errList && lista.some(f => f.name === `${data.id}.pdf`)) {
-        const { data: pdf } = supabase.storage
-          .from('documentos')
-          .getPublicUrl(`contratos/${data.id}.pdf`);
-        setPdfUrl(pdf.publicUrl);
-      } else {
-        setPdfUrl(null);
-      }
+        .getPublicUrl(`contratos/${data.id}.pdf`)
+      setPdfUrl(pdf.publicUrl)
     }
   }
 
   function handleChange(e) {
-    const { name, value, files } = e.target;
+    const { name, value, files } = e.target
     if (name === 'arquivoPdf') {
-      setForm((f) => ({ ...f, [name]: files[0] }));
+      setForm(f => ({ ...f, [name]: files[0] }))
     } else {
-      setForm((f) => ({ ...f, [name]: value }));
+      setForm(f => ({ ...f, [name]: value }))
     }
   }
 
   async function salvar() {
+    // Validação básica (opcional)
+    if (!form.cliente.trim()) {
+      alert('Informe o nome do cliente.')
+      return
+    }
+
     const novo = {
       ...form,
       valor_global: parseFloat(form.valor_global || 0),
       quantidadeElevador: parseInt(form.quantidadeElevador || 0),
       quantidadePlataforma: parseInt(form.quantidadePlataforma || 0),
       valor_comissao: parseFloat(form.valor_global || 0) * 0.04,
-    };
+    }
 
-    delete novo.arquivoPdf;
+    delete novo.arquivoPdf
 
-    let result;
+    let result
     if (id) {
-      result = await supabase.from('contratos').update(novo).eq('id', id).select().single();
+      result = await supabase.from('contratos').update(novo).eq('id', id).select().single()
     } else {
-      result = await supabase.from('contratos').insert(novo).select().single();
+      result = await supabase.from('contratos').insert(novo).select().single()
     }
 
     if (result.error) {
-      alert('Erro ao salvar: ' + result.error.message);
-      return;
+      alert('Erro ao salvar: ' + result.error.message)
+      return
     }
 
     if (form.arquivoPdf) {
-      const contratoId = result.data.id;
+      const contratoId = result.data.id
       const { error: uploadErr } = await supabase.storage
         .from('documentos')
         .upload(`contratos/${contratoId}.pdf`, form.arquivoPdf, {
           cacheControl: '3600',
           upsert: true,
-        });
+        })
 
       if (uploadErr) {
-        alert('Contrato salvo, mas erro ao enviar PDF: ' + uploadErr.message);
+        alert('Contrato salvo, mas erro ao enviar PDF: ' + uploadErr.message)
       } else {
         const { data: pdf } = supabase.storage
           .from('documentos')
-          .getPublicUrl(`contratos/${contratoId}.pdf`);
-        setPdfUrl(pdf.publicUrl);
+          .getPublicUrl(`contratos/${contratoId}.pdf`)
+        setPdfUrl(pdf.publicUrl)
       }
     }
 
-    navigate('/');
+    if (onSalvou) onSalvou()
+    else navigate('/')
   }
 
   return (
@@ -132,7 +135,7 @@ export default function Formulario() {
           className="w-full p-2 rounded bg-gray-800 text-white mt-1"
         >
           <option value="">Selecione o estado</option>
-          {estadosBR.map((uf) => (
+          {estadosBR.map(uf => (
             <option key={uf} value={uf}>{uf}</option>
           ))}
         </select>
@@ -146,6 +149,7 @@ export default function Formulario() {
           value={form.valor_global}
           onChange={handleChange}
           className="w-full p-2 rounded bg-gray-800 mt-1"
+          step="0.01"
         />
       </label>
 
@@ -293,5 +297,5 @@ export default function Formulario() {
         Salvar
       </button>
     </div>
-  );
+  )
 }

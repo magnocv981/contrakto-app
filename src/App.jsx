@@ -1,21 +1,20 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Formulario from './pages/Formulario';
-import VisualizarContrato from './pages/VisualizarContrato';
+// src/App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Dashboard from './pages/Dashboard'
+import Contratos from './pages/Contratos'
+import VisualizarContrato from './pages/VisualizarContrato'
+import Relatorio from './pages/Relatorio' // importando a nova tela de relatório
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/contrato/novo" element={<Formulario />} />
-          <Route path="/contrato/:id" element={<Formulario />} />
-          <Route path="/visualizar/:id" element={<VisualizarContrato />} />
-          <Route path="/relatorio" element={<div className="text-white">Relatórios em construção</div>} />
-        </Route>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/contratos" element={<Contratos />} />
+        <Route path="/relatorio" element={<Relatorio />} />
+        <Route path="/visualizar/:id" element={<VisualizarContrato />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
-  );
+  )
 }
