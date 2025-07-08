@@ -1,115 +1,103 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { PieChart, Pie, Cell, Tooltip, BarChart, XAxis, YAxis, Bar, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts'
+import { useNavigate } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 
 export default function Dashboard() {
   const [contratos, setContratos] = useState([])
   const navigate = useNavigate()
 
   useEffect(() => {
+    async function fetchContratos() {
+      const { data, error } = await supabase.from('contratos').select('*')
+      if (!error) setContratos(data)
+    }
     fetchContratos()
   }, [])
 
-  async function fetchContratos() {
-    const { data, error } = await supabase.from('contratos').select('*')
-    if (error) {
-      alert('Erro ao carregar contratos: ' + error.message)
-    } else {
-      setContratos(data)
-    }
-  }
+  const vendasNoAno = contratos
+    .filter((c) => new Date(c.inicio).getFullYear() === new Date().getFullYear())
+    .reduce((total, c) => total + Number(c.valor_global || 0), 0)
 
-  // Agrupar por estado
-  const contratosPorEstado = contratos.reduce((acc, contrato) => {
-    const estado = contrato.estado || 'Não informado'
-    acc[estado] = (acc[estado] || 0) + 1
-    return acc
-  }, {})
-
-  const chartDataEstado = Object.entries(contratosPorEstado).map(([estado, total]) => ({
-    name: estado,
-    value: total,
-  }))
-
-  // Corrigir status duplicados por espaços/letras
-  const statusCounts = contratos.reduce((acc, contrato) => {
-    const status = (contrato.status || 'Indefinido').trim()
-    acc[status] = (acc[status] || 0) + 1
-    return acc
-  }, {})
-
-  const statusChartData = Object.entries(statusCounts).map(([status, count]) => ({
-    name: status,
-    value: count,
-  }))
-
-  // Valores e totais
-  const vendasAno = contratos.reduce((acc, c) => acc + (parseFloat(c.valor_global) || 0), 0)
-  const vendasMes = contratos
+  const vendasNoMes = contratos
     .filter((c) => {
-      const data = new Date(c.inicio)
+      const d = new Date(c.inicio)
       const hoje = new Date()
-      return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear()
+      return d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth()
     })
-    .reduce((acc, c) => acc + (parseFloat(c.valor_global) || 0), 0)
+    .reduce((total, c) => total + Number(c.valor_global || 0), 0)
 
-  const totalElevadores = contratos.reduce((acc, c) => acc + (parseInt(c.quantidadeElevador) || 0), 0)
-  const totalPlataformas = contratos.reduce((acc, c) => acc + (parseInt(c.quantidadePlataforma) || 0), 0)
+  const totalElevadores = contratos.reduce((total, c) => total + Number(c.quantidadeElevador || 0), 0)
+  const totalPlataformas = contratos.reduce((total, c) => total + Number(c.quantidadePlataforma || 0), 0)
+
+  const contratosPorEstado = contratos.reduce((acc, c) => {
+    acc[c.estado] = (acc[c.estado] || 0) + 1
+    return acc
+  }, {})
+
+  const dadosPizza = Object.entries(contratosPorEstado).map(([estado, quantidade]) => ({ name: estado, value: quantidade }))
+
+  const contratosPorStatus = contratos.reduce((acc, c) => {
+    acc[c.status] = (acc[c.status] || 0) + 1
+    return acc
+  }, {})
+
+  const dadosStatus = Object.entries(contratosPorStatus).map(([status, total]) => ({ status, total }))
+
+  const COLORS = ['#8884d8', '#00C49F', '#FFBB28', '#FF8042', '#0088FE', '#FF6384']
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* MENU RESPONSIVO */}
-      <div className="bg-gray-900 p-4 shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h1 className="text-2xl font-bold text-white">Contrakto</h1>
-        <div className="flex gap-4 text-sm sm:text-base">
-          <button onClick={() => navigate('/')} className="text-white hover:text-blue-400">
-            Dashboard
-          </button>
-          <button onClick={() => navigate('/contratos')} className="text-white hover:text-blue-400">
+    <div className="min-h-screen bg-gray-950 text-white p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold text-blue-400 mb-6 text-center">Dashboard de Contratos</h1>
+
+        <div className="flex justify-center flex-wrap gap-4 mb-8">
+          <button
+            onClick={() => navigate('/contratos')}
+            className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded"
+          >
             Contratos
           </button>
-          <button onClick={() => navigate('/relatorio')} className="text-white hover:text-blue-400">
+          <button
+            onClick={() => navigate('/relatorio')}
+            className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded"
+          >
             Relatório
           </button>
         </div>
-      </div>
 
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        {/* CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-blue-700 p-4 rounded shadow text-white">
-            <h2 className="text-sm">Vendas no Ano</h2>
-            <p className="text-xl font-bold">
-              R${vendasAno.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gray-800 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold text-gray-300">Vendas no Ano</h2>
+            <p className="text-2xl font-bold text-blue-400">
+              R$ {vendasNoAno.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="bg-blue-600 p-4 rounded shadow text-white">
-            <h2 className="text-sm">Vendas no Mês</h2>
-            <p className="text-xl font-bold">
-              R${vendasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <div className="bg-gray-800 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold text-gray-300">Vendas no Mês</h2>
+            <p className="text-2xl font-bold text-blue-400">
+              R$ {vendasNoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="bg-blue-500 p-4 rounded shadow text-white">
-            <h2 className="text-sm">Elevadores</h2>
-            <p className="text-xl font-bold">{totalElevadores}</p>
+          <div className="bg-gray-800 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold text-gray-300">Elevadores</h2>
+            <p className="text-2xl font-bold text-blue-400">{totalElevadores}</p>
           </div>
-          <div className="bg-blue-400 p-4 rounded shadow text-white">
-            <h2 className="text-sm">Plataformas</h2>
-            <p className="text-xl font-bold">{totalPlataformas}</p>
+          <div className="bg-gray-800 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold text-gray-300">Plataformas</h2>
+            <p className="text-2xl font-bold text-blue-400">{totalPlataformas}</p>
           </div>
         </div>
 
-        {/* GRÁFICOS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Gráfico por estado (pizza) */}
-          <div className="bg-gray-900 p-4 rounded shadow">
-            <h3 className="text-lg mb-2 font-bold">Contratos por Estado</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-gray-800 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold text-gray-300 mb-2">Contratos por Estado</h2>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
-                <Pie data={chartDataEstado} dataKey="value" nameKey="name" outerRadius={100}>
-                  {chartDataEstado.map((entry, index) => (
-                    <Cell key={index} fill={`hsl(${(index * 50) % 360}, 70%, 50%)`} />
+                <Pie data={dadosPizza} dataKey="value" nameKey="name" outerRadius={90} label>
+                  {dadosPizza.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -117,15 +105,14 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          {/* Gráfico por status (barras) */}
-          <div className="bg-gray-900 p-4 rounded shadow">
-            <h3 className="text-lg mb-2 font-bold">Contratos por Status</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={statusChartData}>
-                <XAxis dataKey="name" stroke="#ccc" />
+          <div className="bg-gray-800 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold text-gray-300 mb-2">Contratos por Status</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={dadosStatus}>
+                <XAxis dataKey="status" stroke="#ccc" />
                 <YAxis stroke="#ccc" />
                 <Tooltip />
-                <Bar dataKey="value" fill="#38bdf8" />
+                <Bar dataKey="total" fill="#00C49F" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -134,4 +121,3 @@ export default function Dashboard() {
     </div>
   )
 }
-
